@@ -476,9 +476,26 @@ function renderMathExpressions(html: string): string {
     .join("")
 }
 
-async function highlightCodeBlocks(html: string): Promise<string> {
+function isMermaidLanguage(language: string | undefined) {
+  return language?.toLowerCase() === "mermaid"
+}
+
+function escapeCodeBlock(code: string) {
+  return code
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;")
+}
+
+export function renderMermaidCodeBlock(code: string) {
+  return `<pre><code class="language-mermaid">${escapeCodeBlock(code)}</code></pre>`
+}
+
+export async function highlightCodeBlocks(html: string): Promise<string> {
   const codeBlockRegex = /<pre><code(?:\s+class="language-([^"]*)")?>([\s\S]*?)<\/code><\/pre>/g
-  const matches = [...html.matchAll(codeBlockRegex)]
+  const matches = [...html.matchAll(codeBlockRegex)].filter((match) => !isMermaidLanguage(match[1]))
   if (matches.length === 0) return html
 
   const highlighter = await getSharedHighlighter({
@@ -534,6 +551,7 @@ export const { use: useMarked, provider: MarkedProvider } = createSimpleContext(
       katexExtension,
       markedShiki({
         async highlight(code, lang) {
+          if (isMermaidLanguage(lang)) return renderMermaidCodeBlock(code)
           const highlighter = await getSharedHighlighter({
             themes: ["OpenCode"],
             langs: [],

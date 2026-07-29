@@ -1,3 +1,14 @@
+<h1 align="center">Rainny</h1>
+
+<p align="center">A personal downstream distribution of OpenCode for desktop and CLI use.</p>
+
+> [!IMPORTANT]
+> Rainny is maintained at [xiay8874-source/Rainny](https://github.com/xiay8874-source/Rainny).
+> It is based on the MIT-licensed [OpenCode](https://github.com/anomalyco/opencode) project and is not an
+> official OpenCode release. See [DOWNSTREAM.md](DOWNSTREAM.md) for identity, compatibility, and upstream-sync rules.
+
+## Upstream OpenCode documentation
+
 <p align="center">
   <a href="https://opencode.ai">
     <picture>

@@ -185,6 +185,265 @@
     position: relative;
   }
 
+  [data-component="mermaid-diagram"] {
+    position: relative;
+    width: 100%;
+    min-height: 96px;
+    margin-top: 12px;
+    margin-bottom: 24px;
+    overflow: hidden;
+    border: 0.5px solid var(--v2-border-border-base);
+    border-radius: 10px;
+    background: var(--v2-background-bg-layer-01);
+  }
+
+  [data-component="mermaid-diagram"][data-state="loading"],
+  [data-component="mermaid-diagram"][data-state="streaming"] {
+    min-height: 96px;
+    background: linear-gradient(
+      90deg,
+      var(--v2-background-bg-layer-01),
+      var(--v2-background-bg-layer-02),
+      var(--v2-background-bg-layer-01)
+    );
+    background-size: 200% 100%;
+    animation: mermaid-loading 1.4s ease-in-out infinite;
+  }
+
+  [data-component="mermaid-diagram"] [data-slot="mermaid-toolbar"] {
+    display: flex;
+    min-height: 44px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 6px 8px 6px 12px;
+    border-bottom: 0.5px solid var(--v2-border-border-muted);
+    background: var(--v2-background-bg-layer-02);
+  }
+
+  [data-component="mermaid-diagram"] [data-slot="mermaid-heading"] {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 8px;
+  }
+
+  [data-component="mermaid-diagram"] [data-slot="mermaid-title"] {
+    color: var(--v2-text-text-base);
+    font-size: 12px;
+    font-weight: var(--font-weight-medium);
+  }
+
+  [data-component="mermaid-diagram"] [data-slot="mermaid-compat"] {
+    padding: 2px 6px;
+    border-radius: 999px;
+    background: var(--v2-background-bg-layer-01);
+    color: var(--v2-text-text-muted);
+    font-size: 10px;
+    line-height: 16px;
+  }
+
+  [data-component="mermaid-diagram"] [data-slot="mermaid-actions"] {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  [data-component="mermaid-diagram"] [data-slot="mermaid-actions"] [data-component="icon-button-v2"] {
+    min-width: 32px;
+    min-height: 32px;
+  }
+
+  [data-component="mermaid-diagram"] [data-slot="mermaid-zoom-controls"] {
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+    border: 0.5px solid var(--v2-border-border-muted);
+    border-radius: 6px;
+    background: var(--v2-background-bg-layer-01);
+  }
+
+  [data-component="mermaid-diagram"] [data-slot="mermaid-scale"] {
+    min-width: 48px;
+    height: 32px;
+    padding: 0 6px;
+    border: solid var(--v2-border-border-muted);
+    border-width: 0 0.5px;
+    background: transparent;
+    color: var(--v2-text-text-muted);
+    font: inherit;
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  [data-component="mermaid-diagram"] [data-slot="mermaid-scale"]:hover:not(:disabled) {
+    background: var(--v2-background-bg-layer-02);
+    color: var(--v2-text-text-base);
+  }
+
+  [data-component="mermaid-diagram"] [data-slot="mermaid-text-action"] {
+    min-width: 40px;
+    min-height: 32px;
+    padding: 0 8px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--v2-text-text-muted);
+    font: inherit;
+    font-size: 11px;
+  }
+
+  [data-component="mermaid-diagram"] [data-slot="mermaid-text-action"]:hover:not(:disabled),
+  [data-component="mermaid-diagram"] [data-slot="mermaid-text-action"][aria-pressed="true"] {
+    background: var(--v2-background-bg-layer-01);
+    color: var(--v2-text-text-base);
+  }
+
+  [data-component="mermaid-diagram"] [data-slot="mermaid-download"] {
+    position: relative;
+  }
+
+  [data-component="mermaid-diagram"] [data-slot="mermaid-download-menu"] {
+    position: absolute;
+    top: 36px;
+    right: 0;
+    z-index: 20;
+    min-width: 152px;
+    overflow: hidden;
+    padding: 4px;
+    border: 0.5px solid var(--v2-border-border-base);
+    border-radius: 6px;
+    background: var(--v2-background-bg-layer-01);
+    box-shadow: var(--v2-elevation-floating);
+  }
+
+  [data-component="mermaid-diagram"] [data-slot="mermaid-download-menu"] button {
+    display: block;
+    width: 100%;
+    padding: 7px 8px;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--v2-text-text-base);
+    font: inherit;
+    font-size: 11px;
+    text-align: left;
+  }
+
+  [data-component="mermaid-diagram"] [data-slot="mermaid-download-menu"] button:hover {
+    background: var(--v2-background-bg-layer-02);
+  }
+
+  [data-component="mermaid-diagram"] [data-slot="mermaid-viewport"] {
+    display: block;
+    width: 100%;
+    height: var(--mermaid-viewport-height, 320px);
+    max-height: min(56vh, 520px);
+    overflow: hidden;
+    padding: 24px;
+    background:
+      radial-gradient(circle at center, color-mix(in oklch, var(--v2-border-border-muted) 35%, transparent) 0.5px, transparent 0.5px)
+        0 0 / 16px 16px,
+      var(--v2-background-bg-layer-01);
+  }
+
+  [data-component="mermaid-diagram"] [data-slot="mermaid-viewport"] svg {
+    display: block;
+    flex: none;
+    max-width: none;
+    max-height: none;
+    margin: 0 auto;
+    text-rendering: geometricPrecision;
+  }
+
+  [data-component="mermaid-diagram"] [data-slot="mermaid-pending"] {
+    display: flex;
+    min-height: 96px;
+    align-items: center;
+    justify-content: center;
+    color: var(--v2-text-text-muted);
+    font-size: 12px;
+  }
+
+  [data-component="mermaid-diagram"] [data-slot="mermaid-error"] {
+    display: flex;
+    min-height: 112px;
+    align-items: center;
+    gap: 12px;
+    padding: 20px;
+    color: var(--v2-text-text-muted);
+  }
+
+  [data-component="mermaid-diagram"] [data-slot="mermaid-error"] > [data-component="icon"] {
+    flex: none;
+    color: var(--v2-state-fg-warning);
+  }
+
+  [data-component="mermaid-diagram"] [data-slot="mermaid-error"] > div {
+    display: flex;
+    min-width: 0;
+    flex: 1;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  [data-component="mermaid-diagram"] [data-slot="mermaid-error"] strong {
+    color: var(--v2-text-text-base);
+    font-size: 12px;
+    font-weight: var(--font-weight-medium);
+  }
+
+  [data-component="mermaid-diagram"] [data-slot="mermaid-error"] span {
+    overflow: hidden;
+    font-size: 11px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  [data-component="mermaid-diagram"] [data-slot="mermaid-source"] {
+    min-height: 112px;
+    max-height: min(48vh, 420px);
+    margin: 0;
+    overflow: auto;
+    padding: 16px 18px;
+    border: 0;
+    border-radius: 0;
+    background: var(--color-background-stronger);
+    color: var(--text-base);
+    white-space: pre;
+  }
+
+  [data-component="mermaid-diagram"][data-expanded="true"] {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    flex-direction: column;
+    margin: 0;
+    border: 0;
+    border-radius: 0;
+    background: var(--v2-background-bg-base);
+    outline: none;
+  }
+
+  [data-component="mermaid-diagram"][data-expanded="true"] [data-slot="mermaid-toolbar"] {
+    flex: none;
+    padding-right: max(12px, env(safe-area-inset-right));
+    padding-left: max(12px, env(safe-area-inset-left));
+  }
+
+  [data-component="mermaid-diagram"][data-expanded="true"] [data-slot="mermaid-viewport"],
+  [data-component="mermaid-diagram"][data-expanded="true"] [data-slot="mermaid-source"] {
+    width: 100%;
+    height: auto;
+    min-height: 0;
+    max-height: none;
+    flex: 1;
+  }
+
   [data-component="markdown-code"][data-code-kind="shell"] .shiki {
     background: var(--markdown-shell-code-background);
     border-color: var(--markdown-shell-code-border);
@@ -295,6 +554,15 @@
     border-radius: 4px;
     margin: 1.5rem 0;
     display: block;
+  }
+}
+
+@keyframes mermaid-loading {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
   }
 }
 

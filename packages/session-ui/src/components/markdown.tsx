@@ -31,6 +31,7 @@ import { markdownBlockKey, type MarkdownToken } from "./markdown-worker-protocol
 import { shouldResetCodeTokens, type RenderedCodeState } from "./markdown-code-state"
 import { getCachedMarkdown, sanitizeMarkdown, touchCachedMarkdown, type MarkdownCacheEntry } from "./markdown-cache"
 import { inlineCodeKind } from "./markdown-inline-code-kind"
+import { mountMermaidDiagram } from "./mermaid-diagram"
 
 type RenderedBlock =
   | (MarkdownCacheEntry & { key: string; mode: Exclude<Block["mode"], "code"> })
@@ -52,6 +53,7 @@ type RenderResult = {
 }
 
 const renderedCodeTokens = new WeakMap<HTMLDivElement, RenderedCodeState>()
+const mermaidDiagramDisposers = new WeakMap<HTMLElement, () => void>()
 
 function escape(text: string) {
   return text
@@ -171,6 +173,17 @@ function disposeCopyButtons(root: Element) {
   hosts.forEach(disposeCopyButton)
 }
 
+function disposeMermaidDiagrams(root: Element) {
+  const hosts = [
+    ...(root instanceof HTMLElement && root.getAttribute("data-slot") === "mermaid-host" ? [root] : []),
+    ...Array.from(root.querySelectorAll<HTMLElement>('[data-slot="mermaid-host"]')),
+  ]
+  hosts.forEach((host) => {
+    mermaidDiagramDisposers.get(host)?.()
+    mermaidDiagramDisposers.delete(host)
+  })
+}
+
 const shellLanguages = new Set(["bash", "sh", "shell", "zsh", "fish", "console", "terminal"])
 
 function codeKind(language: string | undefined) {
@@ -183,6 +196,17 @@ function codeLanguage(block: HTMLPreElement) {
   const code = block.querySelector("code")
   if (!(code instanceof HTMLElement)) return
   return code.className.match(/(?:^|\s)language-([^\s]+)/)?.[1]
+}
+
+function isMermaidLanguage(language: string | undefined) {
+  return language?.toLowerCase() === "mermaid"
+}
+
+function createMermaidHost(source: string, complete = true) {
+  const host = document.createElement("div")
+  host.setAttribute("data-slot", "mermaid-host")
+  mermaidDiagramDisposers.set(host, mountMermaidDiagram(host, source, complete))
+  return host
 }
 
 function applyCodeMetadata(wrapper: HTMLElement, language: string | undefined) {
@@ -273,6 +297,11 @@ function markInlineCode(root: HTMLDivElement) {
 function decorate(root: HTMLDivElement, labels: CopyLabels) {
   const blocks = Array.from(root.querySelectorAll("pre"))
   for (const block of blocks) {
+    if (isMermaidLanguage(codeLanguage(block))) {
+      const source = block.querySelector("code")?.textContent ?? ""
+      block.replaceWith(createMermaidHost(source))
+      continue
+    }
     ensureCodeWrapper(block, labels)
   }
   if (!document.body.hasAttribute("data-new-layout")) return
@@ -402,6 +431,19 @@ export function Markdown(
           const blockKey = markdownBlockKey(owner, src.key, index, block.mode)
 
           if (block.mode === "code") {
+            if (isMermaidLanguage(block.language)) {
+              return {
+                key: blockKey,
+                mode: block.mode,
+                raw: block.raw,
+                hash: String(block.raw.length),
+                language: "mermaid",
+                complete: !!block.complete,
+                generation: 0,
+                stable: [],
+                unstable: [[block.src, ""] as MarkdownToken],
+              }
+            }
             const cached = completedCode.get(blockKey)
             if (block.complete && cached?.raw === block.raw) return cached
             const result = await code(block.src, block.language, blockKey, block.complete)
@@ -464,6 +506,7 @@ export function Markdown(
     if (isServer) return
     if (content.length === 0) {
       disposeCopyButtons(container)
+      disposeMermaidDiagrams(container)
       container.innerHTML = ""
       return
     }
@@ -483,6 +526,7 @@ export function Markdown(
       const child = container.lastElementChild
       if (!child) break
       disposeCopyButtons(child)
+      disposeMermaidDiagrams(child)
       child.remove()
     }
     container
@@ -497,6 +541,8 @@ export function Markdown(
 
   onCleanup(() => {
     if (copyCleanup) copyCleanup()
+    const container = root()
+    if (container) disposeMermaidDiagrams(container)
     activeCodeKeys.forEach(disposeCode)
     completedCode.clear()
   })
@@ -550,6 +596,10 @@ function disposeCode(key: string) {
 function updateBlock(container: HTMLDivElement, index: number, block: RenderedBlock, labels: CopyLabels) {
   const current = container.children[index]
   if (block.mode === "code") {
+    if (isMermaidLanguage(block.language)) {
+      updateMermaidBlock(container, current, block)
+      return
+    }
     updateCodeBlock(container, current, block, labels)
     return
   }
@@ -587,10 +637,35 @@ function updateBlock(container: HTMLDivElement, index: number, block: RenderedBl
       return true
     },
     onBeforeNodeDiscarded: (node) => {
-      if (node instanceof Element) disposeCopyButtons(node)
+      if (node instanceof Element) {
+        disposeCopyButtons(node)
+        disposeMermaidDiagrams(node)
+      }
       return true
     },
   })
+}
+
+function updateMermaidBlock(
+  container: HTMLDivElement,
+  current: Element | undefined,
+  block: Extract<RenderedBlock, { mode: "code" }>,
+) {
+  const next = document.createElement("div")
+  next.dataset.markdownBlock = ""
+  next.dataset.markdownKey = block.key
+  next.dataset.markdownHash = block.hash
+  next.dataset.markdownComplete = block.complete ? "true" : "false"
+  next.style.display = "contents"
+  next.appendChild(createMermaidHost(block.unstable.map((token) => token[0]).join(""), block.complete))
+
+  if (current) {
+    disposeCopyButtons(current)
+    disposeMermaidDiagrams(current)
+    current.replaceWith(next)
+    return
+  }
+  container.appendChild(next)
 }
 
 function updateCodeBlock(
@@ -601,6 +676,7 @@ function updateCodeBlock(
 ) {
   const existing = current instanceof HTMLDivElement && current.dataset.markdownKey === block.key ? current : undefined
   const next = existing ?? document.createElement("div")
+  if (existing) disposeMermaidDiagrams(existing)
   next.dataset.markdownBlock = ""
   next.dataset.markdownKey = block.key
   next.dataset.markdownHash = block.hash
@@ -660,6 +736,7 @@ function updateCodeBlock(
   })
   if (current) {
     disposeCopyButtons(current)
+    disposeMermaidDiagrams(current)
     current.replaceWith(next)
     return
   }

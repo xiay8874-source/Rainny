@@ -1,10 +1,11 @@
 import { app } from "electron"
 import log from "electron-log/main.js"
-import { existsSync, readdirSync, readFileSync } from "node:fs"
+import { copyFileSync, existsSync, readdirSync, readFileSync } from "node:fs"
 import { homedir } from "node:os"
 import { join } from "node:path"
 import { CHANNEL } from "./constants"
 import { getStore } from "./store"
+import { migrateRainnyData } from "./rainny-data-migration"
 
 const TAURI_MIGRATED_KEY = "tauriMigrated"
 
@@ -48,7 +49,8 @@ function migrateFile(datPath: string, filename: string) {
   // opencode.settings.dat → the electron settings store ("opencode.settings").
   // All other .dat files keep their full filename as the store name so they match
   // what the renderer passes via IPC (e.g. "default.dat", "opencode.global.dat").
-  const storeName = filename === "opencode.settings.dat" ? "opencode.settings" : filename
+  const rainnyFilename = filename.replace(/^opencode/, "rainny")
+  const storeName = rainnyFilename === "rainny.settings.dat" ? "rainny.settings" : rainnyFilename
   const target = getStore(storeName)
   const migrated: string[] = []
   const skipped: string[] = []
@@ -67,6 +69,9 @@ function migrateFile(datPath: string, filename: string) {
 }
 
 export function migrate() {
+  const rainny = migrateRainnyData(app.getPath("userData"))
+  if (rainny.length) log.log("rainny migration: renamed runtime data", { migrated: rainny })
+  migrateElectronFiles()
   if (getStore().get(TAURI_MIGRATED_KEY)) {
     log.log("tauri migration: already done, skipping")
     return
@@ -88,4 +93,26 @@ export function migrate() {
 
   log.log("tauri migration: complete")
   getStore().set(TAURI_MIGRATED_KEY, true)
+}
+
+function migrateElectronFiles() {
+  const source = join(app.getPath("appData"), tauriAppId())
+  const target = app.getPath("userData")
+  if (source === target || !existsSync(source)) return
+
+  const migrated: string[] = []
+  for (const entry of readdirSync(source, { withFileTypes: true })) {
+    if (!entry.isFile()) continue
+    if (
+      entry.name !== "opencode.settings" &&
+      !entry.name.endsWith(".dat") &&
+      !/^window-state-.+\.json$/.test(entry.name)
+    )
+      continue
+    const destination = join(target, entry.name.replace(/^opencode/, "rainny"))
+    if (existsSync(destination)) continue
+    copyFileSync(join(source, entry.name), destination)
+    migrated.push(entry.name)
+  }
+  log.log("electron migration: copied compatible OpenCode state", { source, target, migrated })
 }

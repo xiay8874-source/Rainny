@@ -1,5 +1,6 @@
 import * as http from "node:http"
 import * as tls from "node:tls"
+import { join } from "node:path"
 
 type NodeHttpWithEnvProxy = typeof http & {
   setGlobalProxyFromEnv: () => void
@@ -82,8 +83,12 @@ async function stop() {
 
 function prepareSidecarEnv(password: string, userDataPath: string) {
   Object.assign(process.env, {
+    OPENCODE_APP_NAME: "rainny",
     OPENCODE_SERVER_USERNAME: "opencode",
     OPENCODE_SERVER_PASSWORD: password,
+    XDG_DATA_HOME: process.env.XDG_DATA_HOME ?? join(userDataPath, "data"),
+    XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME ?? join(userDataPath, "config"),
+    XDG_CACHE_HOME: process.env.XDG_CACHE_HOME ?? join(userDataPath, "cache"),
     XDG_STATE_HOME: process.env.XDG_STATE_HOME ?? userDataPath,
   })
 }

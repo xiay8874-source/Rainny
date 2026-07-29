@@ -38,7 +38,8 @@ const session = (input: Partial<Session> & Pick<Session, "id" | "directory">) =>
 
 describe("layout deep links", () => {
   test("parses open-project deep links", () => {
-    expect(parseDeepLink("opencode://open-project?directory=/tmp/demo")).toBe("/tmp/demo")
+    expect(parseDeepLink("rainny://open-project?directory=/tmp/demo")).toBe("/tmp/demo")
+    expect(parseDeepLink("opencode://open-project?directory=/tmp/legacy")).toBe("/tmp/legacy")
   })
 
   test("ignores non-project deep links", () => {

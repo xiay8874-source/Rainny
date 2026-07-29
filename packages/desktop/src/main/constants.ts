@@ -1,7 +1,6 @@
 import { app } from "electron"
+import { resolveChannel } from "../branding"
 
-type Channel = "dev" | "beta" | "prod"
-const raw = import.meta.env.OPENCODE_CHANNEL
-export const CHANNEL: Channel = raw === "dev" || raw === "beta" || raw === "prod" ? raw : "dev"
+export const CHANNEL = resolveChannel(import.meta.env.RAINNY_CHANNEL ?? import.meta.env.OPENCODE_CHANNEL)
 
 export const UPDATER_ENABLED = app.isPackaged && CHANNEL !== "dev"

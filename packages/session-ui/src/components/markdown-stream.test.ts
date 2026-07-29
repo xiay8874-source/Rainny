@@ -28,6 +28,29 @@ describe("markdown stream", () => {
     ])
   })
 
+  test("preserves Mermaid fences for diagram rendering", () => {
+    expect(stream("```mermaid\nflowchart TD\n  A --> B\n```", true)).toEqual([
+      {
+        raw: "```mermaid\nflowchart TD\n  A --> B\n```",
+        src: "flowchart TD\n  A --> B",
+        mode: "code",
+        language: "mermaid",
+        complete: true,
+      },
+    ])
+  })
+
+  test("does not mark a streaming Mermaid fence complete before it closes", () => {
+    expect(stream("```mermaid\nflowchart TD\n  A --> B", true)).toEqual([
+      {
+        raw: "```mermaid\nflowchart TD\n  A --> B",
+        src: "flowchart TD\n  A --> B",
+        mode: "code",
+        language: "mermaid",
+      },
+    ])
+  })
+
   test("keeps a completed code fence in worker-rendered code mode when prose follows", () => {
     expect(stream("```ts\nconst x = 1\n```\n\nafter", true)).toEqual([
       { raw: "```ts\nconst x = 1\n```\n\n", src: "const x = 1", mode: "code", language: "ts", complete: true },

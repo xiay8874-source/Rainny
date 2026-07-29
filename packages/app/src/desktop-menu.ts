@@ -72,7 +72,7 @@ export type DesktopMenu = {
 export const DESKTOP_MENU: DesktopMenu[] = [
   {
     id: "app",
-    label: "OpenCode",
+    label: "Rainny",
     platforms: ["macos"],
     items: [
       { type: "item", role: "about" },
@@ -200,19 +200,20 @@ export const DESKTOP_MENU: DesktopMenu[] = [
     id: "help",
     label: "Help",
     items: [
-      { type: "item", label: "OpenCode Documentation", href: "https://opencode.ai/docs" },
-      { type: "item", label: "Support Forum", href: "https://discord.com/invite/opencode" },
+      { type: "item", label: "Rainny Source", href: "https://github.com/xiay8874-source/Rainny" },
+      { type: "item", label: "OpenCode Documentation (Upstream)", href: "https://opencode.ai/docs" },
+      { type: "item", label: "OpenCode Community (Upstream)", href: "https://discord.com/invite/opencode" },
       { type: "item", label: "Export Logs...", command: "logs.export" },
       { type: "separator" },
       {
         type: "item",
         label: "Share Feedback",
-        href: "https://github.com/anomalyco/opencode/issues/new?template=feature_request.yml",
+        href: "https://github.com/xiay8874-source/Rainny/issues/new",
       },
       {
         type: "item",
         label: "Report a Bug",
-        href: "https://github.com/anomalyco/opencode/issues/new?template=bug_report.yml",
+        href: "https://github.com/xiay8874-source/Rainny/issues/new",
       },
     ],
   },

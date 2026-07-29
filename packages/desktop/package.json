@@ -1,13 +1,13 @@
 {
-  "name": "@opencode-ai/desktop",
+  "name": "@rainny-ai/desktop",
+  "description": "Rainny desktop coding agent",
   "private": true,
-  "version": "1.18.9",
+  "version": "1.18.10",
   "type": "module",
   "license": "MIT",
-  "homepage": "https://opencode.ai",
+  "homepage": "https://github.com/xiay8874-source/Rainny",
   "author": {
-    "name": "OpenCode",
-    "email": "hello@opencode.ai"
+    "name": "Rainny"
   },
   "scripts": {
     "typecheck": "tsgo -b",

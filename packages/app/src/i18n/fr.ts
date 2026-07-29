@@ -692,7 +692,7 @@ export const dict = {
   "sidebar.project.clearNotifications": "Effacer les notifications",
   "sidebar.empty.title": "Aucun projet ouvert",
   "sidebar.empty.description": "Ouvrez un projet pour commencer",
-  "app.name.desktop": "OpenCode Desktop",
+  "app.name.desktop": "Rainny Desktop",
   "settings.section.desktop": "Bureau",
   "settings.section.server": "Serveur",
   "settings.tab.general": "Général",

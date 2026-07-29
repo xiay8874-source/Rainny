@@ -137,7 +137,12 @@ export class Service extends Context.Service<Service, Interface>()("@opencode/Co
 export const use = serviceUse(Service)
 
 function globalConfigFile() {
-  const candidates = ["opencode.jsonc", "opencode.json", "config.json"].map((file) =>
+  const candidates = [
+    `${Global.Name}.jsonc`,
+    `${Global.Name}.json`,
+    ...(Global.Name === "opencode" ? [] : ["opencode.jsonc", "opencode.json"]),
+    "config.json",
+  ].map((file) =>
     path.join(Global.Path.config, file),
   )
   for (const file of candidates) {
@@ -256,8 +261,12 @@ const layer = Layer.effect(
         }
       }
       result = mergeConfig(result, yield* loadFile(path.join(Global.Path.config, "config.json"), env))
-      result = mergeConfig(result, yield* loadFile(path.join(Global.Path.config, "opencode.json"), env))
-      result = mergeConfig(result, yield* loadFile(path.join(Global.Path.config, "opencode.jsonc"), env))
+      if (Global.Name !== "opencode") {
+        result = mergeConfig(result, yield* loadFile(path.join(Global.Path.config, "opencode.json"), env))
+        result = mergeConfig(result, yield* loadFile(path.join(Global.Path.config, "opencode.jsonc"), env))
+      }
+      result = mergeConfig(result, yield* loadFile(path.join(Global.Path.config, `${Global.Name}.json`), env))
+      result = mergeConfig(result, yield* loadFile(path.join(Global.Path.config, `${Global.Name}.jsonc`), env))
 
       const legacy = path.join(Global.Path.config, "config")
       if (existsSync(legacy)) {

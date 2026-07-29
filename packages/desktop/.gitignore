@@ -9,6 +9,7 @@ lerna-debug.log*
 
 node_modules
 dist
+dist-*/
 dist-ssr
 *.local
 
@@ -25,5 +26,6 @@ dist-ssr
 out/
 
 resources/opencode-cli*
+resources/rainny-cli*
 resources/icons
 resources/*.metainfo.xml

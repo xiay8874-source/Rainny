@@ -1,10 +1,11 @@
 import { app, dialog } from "electron"
 import pkg from "electron-updater"
-import { UPDATER_ENABLED } from "./constants"
+import { CHANNEL, UPDATER_ENABLED } from "./constants"
 import { createUpdaterController, type UpdaterReadyRecord } from "./updater-controller"
 import { getLogger } from "./logging"
 import { getStore } from "./store"
 import { setAppQuitting } from "./windows"
+import { PRODUCT } from "../branding"
 
 const { autoUpdater } = pkg
 const key = "ready"
@@ -12,7 +13,7 @@ const key = "ready"
 export function setupAutoUpdater(stop: () => Promise<void>) {
   const logger = getLogger()
   autoUpdater.logger = logger
-  autoUpdater.channel = "latest"
+  autoUpdater.channel = CHANNEL === "beta" ? "beta" : "latest"
   autoUpdater.allowPrerelease = false
   autoUpdater.allowDowngrade = true
   autoUpdater.autoDownload = false
@@ -24,7 +25,7 @@ export function setupAutoUpdater(stop: () => Promise<void>) {
     currentVersion: app.getVersion(),
   })
 
-  const store = getStore("opencode.updater")
+  const store = getStore("rainny.updater")
   return createUpdaterController({
     enabled: UPDATER_ENABLED,
     currentVersion: app.getVersion(),
@@ -63,7 +64,7 @@ export async function showUpdaterDialog(controller: ReturnType<typeof setupAutoU
   const state = await controller.check()
   if (state.status === "error") {
     if (!alertOnFail) return
-    await dialog.showMessageBox({ type: "error", message: "Update check failed.", title: "Update Error" })
+    await dialog.showMessageBox({ type: "error", message: `${PRODUCT.name} update check failed.`, title: "Update Error" })
     return
   }
   if (state.status === "up-to-date") {

@@ -5,11 +5,17 @@ import { dirname, join } from "node:path"
 import { fileURLToPath } from "node:url"
 import { promisify } from "node:util"
 import { app } from "electron"
+import { APP_IDS, PRODUCT } from "../branding"
 
 const execFileAsync = promisify(execFile)
 const root = dirname(fileURLToPath(import.meta.url))
 const stateHome = process.env.XDG_STATE_HOME
-const desktopStateNames = ["ai.opencode.desktop.dev", "ai.opencode.desktop.beta", "ai.opencode.desktop"]
+const desktopStateNames = [
+  ...Object.values(APP_IDS),
+  "ai.opencode.desktop.dev",
+  "ai.opencode.desktop.beta",
+  "ai.opencode.desktop",
+]
 
 type Logger = {
   log(message: string, meta?: Record<string, unknown>): void
@@ -40,10 +46,12 @@ export async function startBackgroundCli(logger: Logger, shellStateHome?: string
   })
 
   const daemonStateHome = found?.stateHome ?? stateHome
-  const url = await run(binary, ["service", "start"], logger, { stateHome: daemonStateHome })
+  const appHome = found ? undefined : app.getPath("userData")
+  const url = await run(binary, ["service", "start"], logger, { stateHome: daemonStateHome, appHome })
   const password = await run(binary, ["service", "get", "password"], logger, {
     redact: true,
     stateHome: daemonStateHome,
+    appHome,
   })
   logger.log("v2 CLI background service ready", {
     existing: Boolean(found),
@@ -81,12 +89,19 @@ async function run(
   binary: string,
   args: string[],
   logger: Logger,
-  options: { redact?: boolean; stateHome?: string } = {},
+  options: { redact?: boolean; stateHome?: string; appHome?: string } = {},
 ) {
   logger.log("v2 CLI command started", { binary, args })
   const env = { ...process.env }
-  if (options.stateHome === undefined) delete env.XDG_STATE_HOME
-  else env.XDG_STATE_HOME = options.stateHome
+  env.OPENCODE_APP_NAME = PRODUCT.id
+  if (options.appHome) {
+    env.XDG_DATA_HOME = join(options.appHome, "data")
+    env.XDG_CONFIG_HOME = join(options.appHome, "config")
+    env.XDG_CACHE_HOME = join(options.appHome, "cache")
+    env.XDG_STATE_HOME = join(options.appHome, "state")
+  }
+  if (options.stateHome !== undefined) env.XDG_STATE_HOME = options.stateHome
+  if (!options.appHome && options.stateHome === undefined) delete env.XDG_STATE_HOME
   return execFileAsync(binary, args, { env, windowsHide: true }).then(
     (result) => {
       const stdout = result.stdout.trim()
@@ -121,5 +136,5 @@ function endpoint(url: string | undefined) {
 }
 
 function executableName() {
-  return process.platform === "win32" ? "opencode-cli.exe" : "opencode-cli"
+  return PRODUCT.cli
 }
