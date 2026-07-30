@@ -85,6 +85,8 @@ function prepareSidecarEnv(password: string, userDataPath: string) {
     OPENCODE_SERVER_USERNAME: "opencode",
     OPENCODE_SERVER_PASSWORD: password,
     XDG_STATE_HOME: process.env.XDG_STATE_HOME ?? userDataPath,
+    XDG_DATA_HOME: process.env.XDG_DATA_HOME ?? join(userDataPath, "data"),
+    XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME ?? join(userDataPath, "config"),
   })
 }
 
