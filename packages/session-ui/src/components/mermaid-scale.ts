@@ -3,6 +3,58 @@ export const MAX_MERMAID_SCALE = 8
 export const MERMAID_SCALE_STEP = 0.2
 export const DEFAULT_MERMAID_SCALE = 1
 
+type MermaidRect = {
+  left: number
+  right: number
+  top: number
+  bottom: number
+}
+
+function wheelAxisDelta(
+  viewportStart: number,
+  viewportEnd: number,
+  diagramStart: number,
+  diagramEnd: number,
+  delta: number,
+) {
+  if (diagramEnd - diagramStart <= viewportEnd - viewportStart + 0.5) return 0
+  const desired = -delta
+  const minimum = viewportEnd - diagramEnd
+  const maximum = viewportStart - diagramStart
+  return Math.min(maximum, Math.max(minimum, desired))
+}
+
+export function mermaidWheelPanDelta(input: {
+  viewport: MermaidRect
+  diagram: MermaidRect
+  deltaX: number
+  deltaY: number
+  shiftKey: boolean
+}) {
+  const horizontalDelta = input.shiftKey && input.deltaX === 0 ? input.deltaY : input.deltaX
+  const verticalDelta = input.shiftKey && input.deltaX === 0 ? 0 : input.deltaY
+  return {
+    x: wheelAxisDelta(
+      input.viewport.left,
+      input.viewport.right,
+      input.diagram.left,
+      input.diagram.right,
+      horizontalDelta,
+    ),
+    y: wheelAxisDelta(
+      input.viewport.top,
+      input.viewport.bottom,
+      input.diagram.top,
+      input.diagram.bottom,
+      verticalDelta,
+    ),
+  }
+}
+
+export function mermaidNeedsMacTrafficLightInset(platform: string, userAgent: string) {
+  return /(Mac|iPod|iPhone|iPad)/.test(platform) && /Electron\//.test(userAgent)
+}
+
 export function clampMermaidScale(scale: number) {
   return Math.min(MAX_MERMAID_SCALE, Math.max(MIN_MERMAID_SCALE, Number(scale.toFixed(2))))
 }

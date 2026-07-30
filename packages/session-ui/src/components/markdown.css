@@ -435,6 +435,10 @@
     padding-left: max(12px, env(safe-area-inset-left));
   }
 
+  [data-component="mermaid-diagram"][data-expanded="true"][data-window-controls="macos"] [data-slot="mermaid-toolbar"] {
+    padding-left: max(84px, env(safe-area-inset-left));
+  }
+
   [data-component="mermaid-diagram"][data-expanded="true"] [data-slot="mermaid-viewport"],
   [data-component="mermaid-diagram"][data-expanded="true"] [data-slot="mermaid-source"] {
     width: 100%;

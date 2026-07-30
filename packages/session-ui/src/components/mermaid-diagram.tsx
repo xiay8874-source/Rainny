@@ -12,9 +12,11 @@ import {
   DEFAULT_MERMAID_SCALE,
   MAX_MERMAID_SCALE,
   mermaidFitSize,
+  mermaidNeedsMacTrafficLightInset,
   MERMAID_SCALE_STEP,
   MIN_MERMAID_SCALE,
   mermaidViewportHeight,
+  mermaidWheelPanDelta,
 } from "./mermaid-scale"
 
 type RenderedDiagram =
@@ -95,6 +97,8 @@ function MermaidDiagram(props: { source: string; complete?: boolean }) {
   const [copied, setCopied] = createSignal(false)
   const [expanded, setExpanded] = createSignal(false)
   const [viewportHeight, setViewportHeight] = createSignal(320)
+  const macTrafficLightInset =
+    typeof navigator === "object" && mermaidNeedsMacTrafficLightInset(navigator.platform, navigator.userAgent)
   let renderSequence = 0
 
   const copySource = async () => {
@@ -157,10 +161,11 @@ function MermaidDiagram(props: { source: string; complete?: boolean }) {
     }
 
     const diagramID = `rainny-mermaid-${id.replace(/[^a-zA-Z0-9_-]/g, "")}-${++renderSequence}`
+    const controller = new AbortController()
     let active = true
     setDiagram()
 
-    void renderMermaidDiagram({ id: diagramID, source, theme: selectedTheme })
+    void renderMermaidDiagram({ id: diagramID, source, theme: selectedTheme, signal: controller.signal })
       .then((result) => {
         if (active) setDiagram({ ...result, error: "" })
       })
@@ -170,6 +175,7 @@ function MermaidDiagram(props: { source: string; complete?: boolean }) {
 
     onCleanup(() => {
       active = false
+      controller.abort()
     })
   })
 
@@ -225,9 +231,39 @@ function MermaidDiagram(props: { source: string; complete?: boolean }) {
         if (detail?.scale) setScale(clampMermaidScale(detail.scale))
       }
       const handleWheel = (event: WheelEvent) => {
-        if (!event.metaKey && !event.ctrlKey) return
+        if (event.metaKey || event.ctrlKey) {
+          event.stopPropagation()
+          instance.zoomWithWheel(event)
+          return
+        }
+
+        const stageRect = currentStage.getBoundingClientRect()
+        const stageStyle = getComputedStyle(currentStage)
+        const viewport = {
+          left: stageRect.left + currentStage.clientLeft + Number.parseFloat(stageStyle.paddingLeft),
+          right: stageRect.right - currentStage.clientLeft - Number.parseFloat(stageStyle.paddingRight),
+          top: stageRect.top + currentStage.clientTop + Number.parseFloat(stageStyle.paddingTop),
+          bottom: stageRect.bottom - currentStage.clientTop - Number.parseFloat(stageStyle.paddingBottom),
+        }
+        const deltaMultiplier =
+          event.deltaMode === WheelEvent.DOM_DELTA_LINE
+            ? 16
+            : event.deltaMode === WheelEvent.DOM_DELTA_PAGE
+              ? currentStage.clientHeight
+              : 1
+        const movement = mermaidWheelPanDelta({
+          viewport,
+          diagram: svg.getBoundingClientRect(),
+          deltaX: event.deltaX * deltaMultiplier,
+          deltaY: event.deltaY * deltaMultiplier,
+          shiftKey: event.shiftKey,
+        })
+        if (movement.x === 0 && movement.y === 0) return
+
         event.preventDefault()
-        instance.zoomWithWheel(event)
+        event.stopPropagation()
+        const currentScale = instance.getScale()
+        instance.pan(movement.x / currentScale, movement.y / currentScale, { relative: true, animate: false })
       }
       const resizeObserver = new ResizeObserver(fit)
       resizeObserver.observe(currentStage)
@@ -258,6 +294,7 @@ function MermaidDiagram(props: { source: string; complete?: boolean }) {
       ref={container}
       data-component="mermaid-diagram"
       data-expanded={expanded() ? "true" : undefined}
+      data-window-controls={macTrafficLightInset ? "macos" : undefined}
       data-state={!props.complete ? "streaming" : !diagram() ? "loading" : diagram()?.error ? "error" : "ready"}
       aria-label={!diagram() ? "Mermaid diagram loading" : "Mermaid diagram"}
       aria-modal={expanded() ? "true" : undefined}
@@ -399,6 +436,7 @@ function MermaidDiagram(props: { source: string; complete?: boolean }) {
                     <div
                       ref={stage}
                       data-slot="mermaid-viewport"
+                      aria-label="图表画布，可拖拽或双指移动"
                       style={{ "--mermaid-viewport-height": `${viewportHeight()}px` }}
                       innerHTML={rendered().svg}
                     />

@@ -7,7 +7,33 @@ export type MermaidRenderResult = {
   repaired: boolean
 }
 
-let renderQueue = Promise.resolve()
+function mermaidRenderAbortError() {
+  return new DOMException("Mermaid render superseded", "AbortError")
+}
+
+function throwIfAborted(signal?: AbortSignal) {
+  if (signal?.aborted) throw mermaidRenderAbortError()
+}
+
+export function createMermaidRenderQueue() {
+  let queue = Promise.resolve()
+
+  return function enqueue<T>(task: () => Promise<T>, signal?: AbortSignal) {
+    const next = queue.then(async () => {
+      throwIfAborted(signal)
+      const result = await task()
+      throwIfAborted(signal)
+      return result
+    })
+    queue = next.then(
+      () => undefined,
+      () => undefined,
+    )
+    return next
+  }
+}
+
+const enqueueMermaidRender = createMermaidRenderQueue()
 
 const baseConfig = (theme: MermaidTheme): MermaidConfig => ({
   startOnLoad: false,
@@ -56,13 +82,20 @@ export function mermaidErrorSummary(error: unknown) {
   return "存在 Mermaid 无法识别的语法"
 }
 
-export function renderMermaidDiagram(input: { id: string; source: string; theme: MermaidTheme }) {
-  const task = renderQueue.then(async (): Promise<MermaidRenderResult> => {
+export function renderMermaidDiagram(input: {
+  id: string
+  source: string
+  theme: MermaidTheme
+  signal?: AbortSignal
+}) {
+  return enqueueMermaidRender(async (): Promise<MermaidRenderResult> => {
     const { default: mermaid } = await import("mermaid")
+    throwIfAborted(input.signal)
     mermaid.initialize(baseConfig(input.theme))
 
     try {
       await mermaid.parse(input.source)
+      throwIfAborted(input.signal)
       const { svg } = await mermaid.render(input.id, input.source)
       return { svg, repaired: false }
     } catch (originalError) {
@@ -70,17 +103,12 @@ export function renderMermaidDiagram(input: { id: string; source: string; theme:
       if (repairedSource === input.source) throw originalError
       try {
         await mermaid.parse(repairedSource)
+        throwIfAborted(input.signal)
         const { svg } = await mermaid.render(`${input.id}-compat`, repairedSource)
         return { svg, repaired: true }
       } catch {
         throw originalError
       }
     }
-  })
-
-  renderQueue = task.then(
-    () => undefined,
-    () => undefined,
-  )
-  return task
+  }, input.signal)
 }

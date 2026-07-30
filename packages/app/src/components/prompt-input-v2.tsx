@@ -478,13 +478,11 @@ function PromptInputV2ModelControl(props: {
   const content = () => (
     <>
       <Show when={props.providerID}>
-        {(providerID) => (
-          <ProviderIcon
-            id={providerID()}
-            class="size-4 shrink-0 opacity-40 group-hover:opacity-100 transition-opacity duration-150"
-            style={{ "will-change": "opacity", transform: "translateZ(0)" }}
-          />
-        )}
+        <ProviderIcon
+          id={props.providerID ?? ""}
+          class="size-4 shrink-0 opacity-40 group-hover:opacity-100 transition-opacity duration-150"
+          style={{ "will-change": "opacity", transform: "translateZ(0)" }}
+        />
       </Show>
       <span class="truncate leading-4">{props.modelName}</span>
       <span class="-ml-0.5 -mr-1 flex shrink-0">
