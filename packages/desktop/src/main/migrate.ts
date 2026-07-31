@@ -5,7 +5,7 @@ import { homedir } from "node:os"
 import { join } from "node:path"
 import { CHANNEL } from "./constants"
 import { getStore } from "./store"
-import { migrateRainnyData } from "./rainny-data-migration"
+import { migrateRainnyData, migrateRainnyXdgData, mergeStrandedSidecarData } from "./rainny-data-migration"
 
 const TAURI_MIGRATED_KEY = "tauriMigrated"
 
@@ -71,6 +71,16 @@ function migrateFile(datPath: string, filename: string) {
 export function migrate() {
   const rainny = migrateRainnyData(app.getPath("userData"))
   if (rainny.length) log.log("rainny migration: renamed runtime data", { migrated: rainny })
+
+  const xdgData = process.env.XDG_DATA_HOME ?? join(homedir(), ".local", "share")
+  const xdgConfig = process.env.XDG_CONFIG_HOME ?? join(homedir(), ".config")
+  const xdgCache = process.env.XDG_CACHE_HOME ?? join(homedir(), ".cache")
+  const xdg = migrateRainnyXdgData(xdgData, xdgConfig, xdgCache)
+  if (xdg.length) log.log("rainny migration: migrated global XDG opencode -> rainny", { migrated: xdg })
+
+  const stranded = mergeStrandedSidecarData(app.getPath("userData"), xdgData)
+  if (stranded.length) log.log("rainny migration: merged stranded sidecar data into XDG", { migrated: stranded })
+
   migrateElectronFiles()
   if (getStore().get(TAURI_MIGRATED_KEY)) {
     log.log("tauri migration: already done, skipping")

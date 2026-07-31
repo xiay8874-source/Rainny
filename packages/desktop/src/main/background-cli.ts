@@ -46,12 +46,10 @@ export async function startBackgroundCli(logger: Logger, shellStateHome?: string
   })
 
   const daemonStateHome = found?.stateHome ?? stateHome
-  const appHome = found ? undefined : app.getPath("userData")
-  const url = await run(binary, ["service", "start"], logger, { stateHome: daemonStateHome, appHome })
+  const url = await run(binary, ["service", "start"], logger, { stateHome: daemonStateHome })
   const password = await run(binary, ["service", "get", "password"], logger, {
     redact: true,
     stateHome: daemonStateHome,
-    appHome,
   })
   logger.log("v2 CLI background service ready", {
     existing: Boolean(found),
@@ -89,19 +87,13 @@ async function run(
   binary: string,
   args: string[],
   logger: Logger,
-  options: { redact?: boolean; stateHome?: string; appHome?: string } = {},
+  options: { redact?: boolean; stateHome?: string } = {},
 ) {
   logger.log("v2 CLI command started", { binary, args })
   const env = { ...process.env }
   env.OPENCODE_APP_NAME = PRODUCT.id
-  if (options.appHome) {
-    env.XDG_DATA_HOME = join(options.appHome, "data")
-    env.XDG_CONFIG_HOME = join(options.appHome, "config")
-    env.XDG_CACHE_HOME = join(options.appHome, "cache")
-    env.XDG_STATE_HOME = join(options.appHome, "state")
-  }
   if (options.stateHome !== undefined) env.XDG_STATE_HOME = options.stateHome
-  if (!options.appHome && options.stateHome === undefined) delete env.XDG_STATE_HOME
+  else delete env.XDG_STATE_HOME
   return execFileAsync(binary, args, { env, windowsHide: true }).then(
     (result) => {
       const stdout = result.stdout.trim()
