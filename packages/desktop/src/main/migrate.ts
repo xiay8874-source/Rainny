@@ -5,7 +5,7 @@ import { homedir } from "node:os"
 import { join } from "node:path"
 import { CHANNEL } from "./constants"
 import { getStore } from "./store"
-import { migrateRainnyData } from "./rainny-data-migration"
+import { migrateRainnyData, migrateRainnyXdgData, mergeStrandedSidecarData } from "./rainny-data-migration"
 
 const TAURI_MIGRATED_KEY = "tauriMigrated"
 
@@ -24,19 +24,19 @@ function tauriDir(id: string) {
 
 // The Tauri app identifier changes between dev/beta/prod builds.
 const TAURI_APP_IDS: Record<string, string> = {
-  dev: "ai.opencode.desktop.dev",
-  beta: "ai.opencode.desktop.beta",
-  prod: "ai.opencode.desktop",
+  dev: "com.xiay8874.rainny.desktop.dev",
+  beta: "com.xiay8874.rainny.desktop.beta",
+  prod: "com.xiay8874.rainny.desktop",
 }
 function tauriAppId() {
-  return app.isPackaged ? TAURI_APP_IDS[CHANNEL] : "ai.opencode.desktop.dev"
+  return app.isPackaged ? TAURI_APP_IDS[CHANNEL] : "com.xiay8874.rainny.desktop.dev"
 }
 
 // Migrate a single Tauri .dat file into the corresponding electron-store.
-// `opencode.settings.dat` is special: it maps to the `opencode.settings` store
+// `rainny.settings.dat` is special: it maps to the `rainny.settings` store
 // (the electron-store name without the `.dat` extension). All other .dat files
 // keep their full filename as the electron-store name so they match what the
-// renderer already passes via IPC (e.g. `"default.dat"`, `"opencode.global.dat"`).
+// renderer already passes via IPC (e.g. `"default.dat"`, `"rainny.global.dat"`).
 function migrateFile(datPath: string, filename: string) {
   let data: Record<string, unknown>
   try {
@@ -46,7 +46,7 @@ function migrateFile(datPath: string, filename: string) {
     return
   }
 
-  // opencode.settings.dat → the electron settings store ("opencode.settings").
+  // rainny.settings.dat → the electron settings store ("rainny.settings").
   // All other .dat files keep their full filename as the store name so they match
   // what the renderer passes via IPC (e.g. "default.dat", "opencode.global.dat").
   const rainnyFilename = filename.replace(/^opencode/, "rainny")
@@ -71,6 +71,16 @@ function migrateFile(datPath: string, filename: string) {
 export function migrate() {
   const rainny = migrateRainnyData(app.getPath("userData"))
   if (rainny.length) log.log("rainny migration: renamed runtime data", { migrated: rainny })
+
+  const xdgData = process.env.XDG_DATA_HOME ?? join(homedir(), ".local", "share")
+  const xdgConfig = process.env.XDG_CONFIG_HOME ?? join(homedir(), ".config")
+  const xdgCache = process.env.XDG_CACHE_HOME ?? join(homedir(), ".cache")
+  const xdg = migrateRainnyXdgData(xdgData, xdgConfig, xdgCache)
+  if (xdg.length) log.log("rainny migration: migrated global XDG opencode -> rainny", { migrated: xdg })
+
+  const stranded = mergeStrandedSidecarData(app.getPath("userData"), xdgData)
+  if (stranded.length) log.log("rainny migration: merged stranded sidecar data into XDG", { migrated: stranded })
+
   migrateElectronFiles()
   if (getStore().get(TAURI_MIGRATED_KEY)) {
     log.log("tauri migration: already done, skipping")

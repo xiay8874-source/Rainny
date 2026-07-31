@@ -26,5 +26,6 @@ export const APP_NAMES: Record<Channel, string> = {
 
 export function resolveChannel(raw: string | undefined): Channel {
   if (raw === "dev" || raw === "beta" || raw === "prod") return raw
-  return "dev"
+  if (raw === "latest") return "prod"
+  return "prod"
 }
