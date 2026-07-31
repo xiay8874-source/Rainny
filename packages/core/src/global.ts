@@ -7,7 +7,7 @@ import { Flock } from "./util/flock"
 import { Flag } from "./flag/flag"
 import { makeGlobalNode } from "./effect/app-node"
 
-export const Name = (process.env.OPENCODE_APP_NAME || "opencode").replace(/[^a-zA-Z0-9._-]/g, "-")
+export const Name = (process.env.OPENCODE_APP_NAME || "rainny").replace(/[^a-zA-Z0-9._-]/g, "-")
 const app = Name
 const data = path.join(xdgData!, app)
 const cache = path.join(xdgCache!, app)
