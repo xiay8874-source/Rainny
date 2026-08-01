@@ -1,0 +1,14 @@
+# Source Navigation Links
+
+When a response identifies, explains, reviews, or traces source code, every referenced source symbol MUST be a clickable Markdown link with an exact line verified from tools.
+
+- For the current workspace, use `[ClassName.method (line N)](path/from/workspace/File.ext#LN)`.
+- For another available project or reference root, use `[ClassName.method (line N)](/absolute/path/to/File.ext#LN)`.
+- Use `[File.ext (line N)](path/to/File.ext#LN)` only when no more specific symbol applies.
+- Never emit a bare `path:line`, put the path only in parentheses, or invent a line number when a verified link can be provided.
+- In code-analysis context, requests for a code link, source link, jump link, or “符号连接” mean clickable source navigation, not a filesystem symbolic link, unless the user explicitly asks for a filesystem symlink.
+
+<example>
+user: Where are errors from the client handled?
+assistant: Clients are marked as failed in [ClientService.connectToServer (line 712)](src/services/process.ts#L712).
+</example>

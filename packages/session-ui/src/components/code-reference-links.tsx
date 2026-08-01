@@ -26,6 +26,54 @@ export function markCodeReferences(
     if (!reference) return
     decorateCodeReferenceLink(link, reference, resolvePath?.(reference))
   })
+
+  markPlainTextCodeReferences(root, resolvePath)
+}
+
+const plainCodeReferencePattern =
+  /(?:[A-Za-z]:)?[\\/]?(?:[^\s()[\]{}<>`"'，。；！？、:：\\/]+[\\/])*[^\s()[\]{}<>`"'，。；！？、:：\\/]+\.[A-Za-z][A-Za-z0-9._-]*:\d+(?::\d+)?/g
+
+function markPlainTextCodeReferences(
+  root: HTMLDivElement,
+  resolvePath?: (reference: CodeReference) => string | undefined,
+) {
+  const walker = root.ownerDocument.createTreeWalker(root, 4)
+  const nodes: Text[] = []
+  while (walker.nextNode()) {
+    if (walker.currentNode instanceof Text) nodes.push(walker.currentNode)
+  }
+
+  for (const node of nodes) {
+    if (node.parentElement?.closest("a, code, pre, script, style")) continue
+    const value = node.textContent ?? ""
+    const matches = Array.from(value.matchAll(plainCodeReferencePattern)).flatMap((match) => {
+      const index = match.index
+      const text = match[0]
+      const reference = parseCodeReference(text)
+      if (index === undefined || !reference || tokenAt(value, index, index + text.length).includes("://")) return []
+      return [{ index, text, reference }]
+    })
+    if (matches.length === 0) continue
+
+    const fragment = root.ownerDocument.createDocumentFragment()
+    let offset = 0
+    for (const match of matches) {
+      fragment.append(value.slice(offset, match.index))
+      const link = root.ownerDocument.createElement("a")
+      link.textContent = match.text
+      decorateCodeReferenceLink(link, match.reference, resolvePath?.(match.reference))
+      fragment.append(link)
+      offset = match.index + match.text.length
+    }
+    fragment.append(value.slice(offset))
+    node.replaceWith(fragment)
+  }
+}
+
+function tokenAt(value: string, start: number, end: number) {
+  const before = value.slice(0, start).search(/\S+$/)
+  const after = value.slice(end).search(/\s/)
+  return value.slice(before === -1 ? start : before, after === -1 ? value.length : end + after)
 }
 
 function decorateCodeReferenceLink(link: HTMLAnchorElement, reference: CodeReference, resolvedPath?: string) {

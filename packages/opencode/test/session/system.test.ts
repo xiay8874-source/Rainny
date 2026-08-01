@@ -90,6 +90,22 @@ describe("session.system", () => {
     )
   })
 
+  test("adds the same source navigation contract to every provider prompt", () => {
+    const prompts = [
+      "meta/muse-spark-preview",
+      "gpt-5-codex",
+      "gemini-2.5-pro",
+      "claude-sonnet-4",
+      "trinity-large",
+      "kimi-k2",
+      "deepseek-v4-flash",
+    ].map((id) => SystemPrompt.provider({ api: { id } } as Provider.Model).at(-1))
+
+    expect(new Set(prompts).size).toBe(1)
+    expect(prompts[0]).toContain("every referenced source symbol MUST be a clickable Markdown link")
+    expect(prompts[0]).toContain("not a filesystem symbolic link")
+  })
+
   it.effect("skills output is sorted by name and stable across calls", () =>
     Effect.gen(function* () {
       const prompt = yield* SystemPrompt.Service

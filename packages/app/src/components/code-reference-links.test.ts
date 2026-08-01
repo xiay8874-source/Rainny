@@ -32,6 +32,21 @@ describe("markCodeReferences", () => {
     expect(link?.dataset.codeReferenceLine).toBe("1200")
   })
 
+  test("turns verified plain-text source locations into internal links", () => {
+    const root = document.createElement("div")
+    root.innerHTML = `<p>入口：PackageOperateServiceImpl.createPackage (bg-sheep-api/src/main/java/PackageOperateServiceImpl.java:135)，保留 https://example.com/src/Foo.java:9、method:42 和 12.34:56。</p>`
+
+    markCodeReferences(root)
+
+    const links = Array.from(root.querySelectorAll<HTMLAnchorElement>("a.code-reference"))
+    expect(links).toHaveLength(1)
+    expect(links[0]?.dataset.codeReferencePath).toBe("bg-sheep-api/src/main/java/PackageOperateServiceImpl.java")
+    expect(links[0]?.dataset.codeReferenceLine).toBe("135")
+    expect(links[0]?.textContent).toBe("PackageOperateServiceImpl.java (line 135)")
+    expect(root.textContent).toContain("https://example.com/src/Foo.java:9")
+    expect(root.textContent).toContain("12.34:56")
+  })
+
   test("dispatches a structured reference and prevents navigation", async () => {
     const root = document.createElement("div")
     root.innerHTML = `<p><code>src/Foo.java:42:8</code></p>`
