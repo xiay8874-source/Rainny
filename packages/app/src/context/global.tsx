@@ -1,7 +1,13 @@
 import { createSimpleContext } from "@opencode-ai/ui/context"
-import { createEffect, createMemo, createRoot } from "solid-js"
+import { batch, createEffect, createMemo, createRoot } from "solid-js"
 import { createStore } from "solid-js/store"
-import { createServerProjects, RECENTLY_CLOSED_DISPLAY_LIMIT, ServerConnection, useServer } from "./server"
+import {
+  createServerProjects,
+  RECENTLY_CLOSED_DISPLAY_LIMIT,
+  serverProjectWorktrees,
+  ServerConnection,
+  useServer,
+} from "./server"
 import { pathKey } from "@/utils/path-key"
 import { useServerHealth } from "@/utils/server-health"
 import { createServerSdkContext } from "./server-sdk"
@@ -9,11 +15,13 @@ import { createServerSyncContext } from "./server-sync"
 import { getOwner } from "solid-js/web"
 import { QueryClient } from "@tanstack/solid-query"
 import type { ServerScope } from "@/utils/server-scope"
+import { usePlatform } from "./platform"
 
 export const { use: useGlobal, provider: GlobalProvider } = createSimpleContext({
   name: "Global",
   init: () => {
     const server = useServer()
+    const platform = usePlatform()
     const serverHealth = useServerHealth(
       () => server.list,
       () => true,
@@ -47,7 +55,12 @@ export const { use: useGlobal, provider: GlobalProvider } = createSimpleContext(
       const existing = serverCtxs.get(key)
       if (existing) return existing.serverCtx
       const root = createRoot((dispose) => {
-        const serverCtx = createServerCtx(conn, server.scope(key), server.projects.forServer(key))
+        const serverCtx = createServerCtx(
+          conn,
+          server.scope(key),
+          server.projects.forServer(key),
+          platform.platform === "web",
+        )
         return { dispose, serverCtx }
       }, owner as any)
       serverCtxs.set(key, root)
@@ -97,6 +110,7 @@ function createServerCtx(
   conn: ServerConnection.Any,
   scope: ServerScope,
   projects: ReturnType<typeof createServerProjects>,
+  restoreServerProjects: boolean,
 ) {
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -109,6 +123,17 @@ function createServerCtx(
   })
   const sdk = createServerSdkContext(conn, scope)
   const sync = createServerSyncContext(sdk)
+
+  createEffect(() => {
+    const worktrees = serverProjectWorktrees({
+      enabled: restoreServerProjects,
+      opened: projects.list(),
+      recentlyClosed: projects.recentlyClosed(),
+      discovered: sync.data.project,
+    })
+    if (worktrees.length === 0) return
+    batch(() => worktrees.toReversed().forEach(projects.open))
+  })
 
   function enrich(project: { worktree: string; expanded: boolean }) {
     const [childStore] = sync.child(project.worktree, { bootstrap: false })

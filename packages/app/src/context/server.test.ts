@@ -6,6 +6,7 @@ import {
   migrateCanonicalLocalServerState,
   nextServerAfterRemoval,
   resolveServerList,
+  serverProjectWorktrees,
   ServerConnection,
 } from "./server"
 import { ServerScope } from "@/utils/server-scope"
@@ -196,6 +197,43 @@ describe("createServerProjects", () => {
       expect(projects.recentlyClosed()).toEqual(["/repo/"])
       dispose()
     })
+  })
+})
+
+describe("serverProjectWorktrees", () => {
+  const discovered = [
+    { id: "global", worktree: "/" },
+    { id: "one", worktree: "/repo/one" },
+    { id: "two", worktree: "/repo/two" },
+    { id: "duplicate", worktree: "/repo/one/" },
+  ]
+
+  test("restores unique server projects into an empty web project list", () => {
+    expect(serverProjectWorktrees({ enabled: true, opened: [], recentlyClosed: [], discovered })).toEqual([
+      "/repo/one",
+      "/repo/two",
+    ])
+  })
+
+  test("does not overwrite an existing project list", () => {
+    expect(
+      serverProjectWorktrees({
+        enabled: true,
+        opened: [{ worktree: "/repo/local" }],
+        recentlyClosed: [],
+        discovered,
+      }),
+    ).toEqual([])
+  })
+
+  test("does not reopen projects after the user closed them", () => {
+    expect(
+      serverProjectWorktrees({ enabled: true, opened: [], recentlyClosed: ["/repo/one"], discovered }),
+    ).toEqual([])
+  })
+
+  test("is disabled for desktop project storage", () => {
+    expect(serverProjectWorktrees({ enabled: false, opened: [], recentlyClosed: [], discovered })).toEqual([])
   })
 })
 
