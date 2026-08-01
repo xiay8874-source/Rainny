@@ -30,11 +30,14 @@ import { errorMessage } from "./util/error"
 import { PluginCommand } from "./cli/cmd/plug"
 import { Heap } from "./cli/heap"
 
+declare const OPENCODE_CLI_NAME: string | undefined
+
 const args = hideBin(process.argv)
+const name = typeof OPENCODE_CLI_NAME === "string" ? OPENCODE_CLI_NAME : "opencode"
 
 function show(out: string) {
   const text = out.trimStart()
-  if (!text.startsWith("opencode ")) {
+  if (!text.startsWith(`${name} `)) {
     process.stderr.write(UI.logo() + EOL + EOL)
     process.stderr.write(text + EOL)
     return
@@ -44,7 +47,7 @@ function show(out: string) {
 
 const cli = yargs(args)
   .parserConfiguration({ "populate--": true })
-  .scriptName("opencode")
+  .scriptName(name)
   .wrap(100)
   .help("help", "show help")
   .alias("help", "h")

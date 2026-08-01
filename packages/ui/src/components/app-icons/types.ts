@@ -12,6 +12,7 @@ export const iconNames = [
   "warp",
   "xcode",
   "android-studio",
+  "intellij-idea",
   "antigravity",
   "textmate",
   "powershell",

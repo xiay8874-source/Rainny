@@ -1,4 +1,5 @@
 import type { DesktopMenuAction } from "@opencode-ai/app/desktop-menu"
+import type { CodeReferenceRequest } from "@opencode-ai/app"
 import type { WslServersPlatform } from "@opencode-ai/app/wsl/types"
 import type { UpdaterState } from "@opencode-ai/app/updater"
 export type {
@@ -85,6 +86,10 @@ export type ElectronAPI = {
   saveFilePicker: (opts?: { title?: string; defaultPath?: string }) => Promise<string | null>
   openExternal: (url: string) => void
   openLocalFile: (url: string) => void
+  openCodeReference: (request: CodeReferenceRequest) => Promise<void>
+  resolveCodeReference: (request: CodeReferenceRequest) => Promise<string>
+  readLocalFile: (request: CodeReferenceRequest) => Promise<string>
+  getDefaultApplication: (request: CodeReferenceRequest) => Promise<string | undefined>
   openPath: (path: string, app?: string) => Promise<void>
   revealPath: (path: string) => Promise<boolean>
   readClipboardImage: () => Promise<{ buffer: ArrayBuffer; width: number; height: number } | null>

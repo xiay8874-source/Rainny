@@ -22,6 +22,10 @@ await Bun.build({
   define: {
     OPENCODE_MODELS_DEV: generated.modelsData,
     OPENCODE_CHANNEL: `'${Script.channel}'`,
+    OPENCODE_CLI_NAME: `'rainny'`,
+    RAINNY_UPDATE_REPOSITORY: JSON.stringify(
+      process.env.RAINNY_UPDATE_REPOSITORY || "xiay8874-source/Rainny",
+    ),
   },
   files: {
     "opencode-web-ui.gen.ts": "",

@@ -12,6 +12,8 @@ import { DropdownMenu } from "@opencode-ai/ui/dropdown-menu"
 import { IconButton } from "@opencode-ai/ui/icon-button"
 import { LineCommentV2OverflowIcon } from "@opencode-ai/ui/v2/line-comment-v2"
 import { MenuV2 } from "@opencode-ai/ui/v2/menu-v2"
+import { ButtonV2 } from "@opencode-ai/ui/v2/button-v2"
+import { Markdown } from "@opencode-ai/session-ui/markdown"
 import { Tabs } from "@opencode-ai/ui/tabs"
 import { ScrollView } from "@opencode-ai/ui/scroll-view"
 import { showToast } from "@/utils/toast"
@@ -23,12 +25,53 @@ import { useSettings } from "@/context/settings"
 import { getSessionHandoff } from "@/pages/session/handoff"
 import { useSessionLayout } from "@/pages/session/session-layout"
 import { createSessionTabs } from "@/pages/session/helpers"
+import { fileViewScrollKey, supportsFilePreview, type FileViewMode } from "@/pages/session/file-view-mode"
 
 type SessionFileViewProps = {
   tab: string
 }
 
 const selectionSide = (range: SelectedLineRange) => range.endSide ?? range.side ?? "additions"
+
+function FileViewModeToggle(props: {
+  mode: FileViewMode
+  sourceLabel: string
+  previewLabel: string
+  onChange: (mode: FileViewMode) => void
+}) {
+  return (
+    <div class="flex h-10 shrink-0 items-center justify-end border-b border-border-weak-base px-3">
+      <div class="flex items-center gap-0.5 rounded-md bg-background-stronger p-0.5">
+        <ButtonV2
+          type="button"
+          size="small"
+          variant={props.mode === "source" ? "neutral" : "ghost-muted"}
+          aria-pressed={props.mode === "source"}
+          onClick={() => props.onChange("source")}
+        >
+          {props.sourceLabel}
+        </ButtonV2>
+        <ButtonV2
+          type="button"
+          size="small"
+          variant={props.mode === "preview" ? "neutral" : "ghost-muted"}
+          aria-pressed={props.mode === "preview"}
+          onClick={() => props.onChange("preview")}
+        >
+          {props.previewLabel}
+        </ButtonV2>
+      </div>
+    </div>
+  )
+}
+
+function FileMarkdownPreview(props: { path: string; source: string; cacheKey?: string }) {
+  return (
+    <div data-component="file-markdown-preview" class="mx-auto w-full max-w-[960px] px-6 py-5 pb-40">
+      <Markdown text={props.source} cacheKey={`file:${props.path}:${props.cacheKey ?? "empty"}`} streaming={false} />
+    </div>
+  )
+}
 
 function FileCommentMenu(props: {
   moreLabel: string
@@ -252,6 +295,8 @@ function SessionFileViewV1(props: { tab: string }) {
   })
   const contents = createMemo(() => state()?.content?.content ?? "")
   const cacheKey = createMemo(() => sampledChecksum(contents()))
+  const [viewMode, setViewMode] = createSignal<FileViewMode>("source")
+  const previewAvailable = createMemo(() => supportsFilePreview(path()))
   const selectedLines = createMemo<SelectedLineRange | null>(() => {
     const p = path()
     if (!p) return null
@@ -259,7 +304,7 @@ function SessionFileViewV1(props: { tab: string }) {
     return (getSessionHandoff(sessionKey())?.files[p] as SelectedLineRange | undefined) ?? null
   })
   const scrollSync = createScrollSync({
-    tab: () => props.tab,
+    tab: () => fileViewScrollKey(props.tab, viewMode()),
     view,
   })
 
@@ -395,6 +440,7 @@ function SessionFileViewV1(props: { tab: string }) {
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (activeFileTab() !== props.tab) return
+      if (viewMode() === "preview") return
       if (!(event.metaKey || event.ctrlKey) || event.altKey || event.shiftKey) return
       if (event.key.toLowerCase() !== "f") return
 
@@ -410,6 +456,7 @@ function SessionFileViewV1(props: { tab: string }) {
     on(
       path,
       () => {
+        setViewMode("source")
         commentsUi.note.reset()
       },
       { defer: true },
@@ -445,6 +492,16 @@ function SessionFileViewV1(props: { tab: string }) {
     if (!restore) return
     scrollSync.queueRestore()
   })
+
+  createEffect(
+    on(
+      viewMode,
+      () => {
+        scrollSync.queueRestore()
+      },
+      { defer: true },
+    ),
+  )
 
   const renderFile = (source: string) => (
     <div class="relative overflow-hidden pb-40">
@@ -492,10 +549,29 @@ function SessionFileViewV1(props: { tab: string }) {
   )
 
   const content = () => (
-    <div class="mt-3 relative h-full min-h-0">
-      <ScrollView class="h-full" viewportRef={scrollSync.setViewport} onScroll={scrollSync.handleScroll as any}>
+    <div class="mt-3 relative flex h-full min-h-0 flex-col">
+      <Show when={previewAvailable()}>
+        <FileViewModeToggle
+          mode={viewMode()}
+          sourceLabel={language.t("session.files.view.source")}
+          previewLabel={language.t("session.files.view.preview")}
+          onChange={setViewMode}
+        />
+      </Show>
+      <ScrollView
+        class="min-h-0 flex-1"
+        viewportRef={scrollSync.setViewport}
+        onScroll={scrollSync.handleScroll as any}
+      >
         <Switch>
-          <Match when={state()?.loaded}>{renderFile(contents())}</Match>
+          <Match when={state()?.loaded}>
+            <Show
+              when={previewAvailable() && viewMode() === "preview"}
+              fallback={renderFile(contents())}
+            >
+              <FileMarkdownPreview path={path() ?? ""} source={contents()} cacheKey={cacheKey()} />
+            </Show>
+          </Match>
           <Match when={state()?.loading}>
             <div class="px-6 py-4 text-text-weak">{language.t("common.loading")}...</div>
           </Match>
@@ -537,6 +613,8 @@ function SessionFileViewV2(props: { tab: string }) {
   })
   const contents = createMemo(() => state()?.content?.content ?? "")
   const cacheKey = createMemo(() => sampledChecksum(contents()))
+  const [viewMode, setViewMode] = createSignal<FileViewMode>("source")
+  const previewAvailable = createMemo(() => supportsFilePreview(path()))
   const selectedLines = createMemo<SelectedLineRange | null>(() => {
     const p = path()
     if (!p) return null
@@ -544,7 +622,7 @@ function SessionFileViewV2(props: { tab: string }) {
     return (getSessionHandoff(sessionKey())?.files[p] as SelectedLineRange | undefined) ?? null
   })
   const scrollSync = createScrollSync({
-    tab: () => props.tab,
+    tab: () => fileViewScrollKey(props.tab, viewMode()),
     view,
   })
 
@@ -678,6 +756,7 @@ function SessionFileViewV2(props: { tab: string }) {
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (activeFileTab() !== props.tab) return
+      if (viewMode() === "preview") return
       if (!(event.metaKey || event.ctrlKey) || event.altKey || event.shiftKey) return
       if (event.key.toLowerCase() !== "f") return
 
@@ -693,6 +772,7 @@ function SessionFileViewV2(props: { tab: string }) {
     on(
       path,
       () => {
+        setViewMode("source")
         commentsUi.note.reset()
       },
       { defer: true },
@@ -728,6 +808,16 @@ function SessionFileViewV2(props: { tab: string }) {
     if (!restore) return
     scrollSync.queueRestore()
   })
+
+  createEffect(
+    on(
+      viewMode,
+      () => {
+        scrollSync.queueRestore()
+      },
+      { defer: true },
+    ),
+  )
 
   const renderFile = (source: string) => (
     <div class="relative overflow-hidden pb-40">
@@ -783,10 +873,29 @@ function SessionFileViewV2(props: { tab: string }) {
   )
 
   const content = () => (
-    <div class="mt-3 relative h-full min-h-0">
-      <ScrollView class="h-full" viewportRef={scrollSync.setViewport} onScroll={scrollSync.handleScroll as any}>
+    <div class="mt-3 relative flex h-full min-h-0 flex-col">
+      <Show when={previewAvailable()}>
+        <FileViewModeToggle
+          mode={viewMode()}
+          sourceLabel={language.t("session.files.view.source")}
+          previewLabel={language.t("session.files.view.preview")}
+          onChange={setViewMode}
+        />
+      </Show>
+      <ScrollView
+        class="min-h-0 flex-1"
+        viewportRef={scrollSync.setViewport}
+        onScroll={scrollSync.handleScroll as any}
+      >
         <Switch>
-          <Match when={state()?.loaded}>{renderFile(contents())}</Match>
+          <Match when={state()?.loaded}>
+            <Show
+              when={previewAvailable() && viewMode() === "preview"}
+              fallback={renderFile(contents())}
+            >
+              <FileMarkdownPreview path={path() ?? ""} source={contents()} cacheKey={cacheKey()} />
+            </Show>
+          </Match>
           <Match when={state()?.loading}>
             <div class="px-6 py-4 text-text-weak">{language.t("common.loading")}...</div>
           </Match>

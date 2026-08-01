@@ -214,6 +214,18 @@ const createPlatform = (windowState: DesktopWindowState): Platform => {
     openLocalFile(url: string) {
       window.api.openLocalFile(url)
     },
+    openCodeReference(request) {
+      return window.api.openCodeReference(request)
+    },
+    resolveCodeReference(request) {
+      return window.api.resolveCodeReference(request)
+    },
+    readLocalFile(request) {
+      return window.api.readLocalFile(request)
+    },
+    getDefaultApplication(request) {
+      return window.api.getDefaultApplication(request)
+    },
     async openPath(path: string, app?: string) {
       if (os === "windows") {
         const resolvedApp = app ? await window.api.resolveAppPath(app).catch(() => null) : null
@@ -376,7 +388,7 @@ function DesktopRoot(props: { windowState: DesktopWindowState }) {
       const list: ServerConnection.Any[] = []
       if (data) {
         list.push({
-          displayName: "Local Server",
+          displayName: "Rainny",
           type: "sidecar",
           variant: "base",
           http: {

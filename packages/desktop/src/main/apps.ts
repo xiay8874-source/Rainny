@@ -22,7 +22,11 @@ export function resolveAppPath(appName: string) {
 }
 
 async function checkMacosApp(appName: string) {
-  const locations = [`/Applications/${appName}.app`, `/System/Applications/${appName}.app`]
+  const locations = [
+    `/Applications/${appName}.app`,
+    `/System/Applications/${appName}.app`,
+    `/System/Applications/Utilities/${appName}.app`,
+  ]
 
   const home = process.env.HOME
   if (home) locations.push(`${home}/Applications/${appName}.app`)

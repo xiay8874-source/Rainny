@@ -342,7 +342,11 @@
     overflow: hidden;
     padding: 24px;
     background:
-      radial-gradient(circle at center, color-mix(in oklch, var(--v2-border-border-muted) 35%, transparent) 0.5px, transparent 0.5px)
+      radial-gradient(
+          circle at center,
+          color-mix(in oklch, var(--v2-border-border-muted) 35%, transparent) 0.5px,
+          transparent 0.5px
+        )
         0 0 / 16px 16px,
       var(--v2-background-bg-layer-01);
   }
@@ -526,6 +530,37 @@
     text-underline-offset: 2px;
   }
 
+  a.code-reference {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 5px;
+    color: light-dark(#2f80d9, #6aa8ff);
+    text-decoration: none;
+    cursor: pointer;
+    font-family: var(--font-family-sans);
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  a.code-reference::before {
+    content: "";
+    display: inline-block;
+    flex: 0 0 auto;
+    width: 14px;
+    height: 14px;
+    border-radius: 999px;
+    background: linear-gradient(145deg, transparent 42%, white 43% 54%, transparent 55%), currentColor;
+    transform: translateY(2px);
+  }
+
+  a.code-reference > code {
+    padding: 0;
+    background: none;
+    color: inherit;
+    font-family: inherit;
+    font-weight: inherit;
+  }
+
   /* Tables */
   table {
     width: 100%;
@@ -646,4 +681,34 @@ body:not([data-new-layout]) [data-component="markdown"] {
 [data-component="markdown"] a.external-link:hover > code {
   text-decoration: underline;
   text-underline-offset: 2px;
+}
+
+[data-component="markdown"] a.code-reference:hover,
+[data-component="markdown"] a.code-reference:focus-visible {
+  text-decoration: underline;
+  text-decoration-color: color-mix(in oklch, currentColor 35%, transparent);
+  text-underline-offset: 2px;
+}
+
+[data-component="context-menu-content"].code-reference-context-menu,
+[data-component="context-menu-sub-content"].code-reference-context-menu {
+  min-width: 220px;
+  padding: 6px;
+  border-radius: 12px;
+  box-shadow: var(--shadow-lg);
+
+  [data-slot="context-menu-item"],
+  [data-slot="context-menu-sub-trigger"] {
+    min-height: 34px;
+    gap: 0;
+    padding: 6px 10px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: var(--font-weight-normal);
+    line-height: 20px;
+  }
+
+  [data-slot="context-menu-separator"] {
+    margin: 5px -6px;
+  }
 }

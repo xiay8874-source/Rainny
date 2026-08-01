@@ -9,6 +9,7 @@ import fileExplorer from "../assets/icons/app/file-explorer.svg"
 import finder from "../assets/icons/app/finder.png"
 import ghostty from "../assets/icons/app/ghostty.svg"
 import iterm2 from "../assets/icons/app/iterm2.svg"
+import intellijIdea from "../assets/icons/app/intellij-idea.svg"
 import powershell from "../assets/icons/app/powershell.svg"
 import terminal from "../assets/icons/app/terminal.png"
 import textmate from "../assets/icons/app/textmate.png"
@@ -31,6 +32,7 @@ const icons = {
   warp,
   xcode,
   "android-studio": androidStudio,
+  "intellij-idea": intellijIdea,
   antigravity,
   textmate,
   powershell,

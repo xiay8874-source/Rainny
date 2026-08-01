@@ -5,6 +5,7 @@ import type { DesktopMenuAction } from "../desktop-menu"
 import { ServerConnection } from "./server"
 import type { WslServersPlatform } from "../wsl/types"
 import type { UpdaterPlatform } from "../updater"
+import type { CodeReferenceRequest } from "@opencode-ai/session-ui/context"
 
 type PickerPaths = string | string[] | null
 type OpenDirectoryPickerOptions = { title?: string; multiple?: boolean }
@@ -39,6 +40,18 @@ type PlatformBase = {
 
   /** Open a local file URL in its default app (desktop only) */
   openLocalFile?(url: string): void
+
+  /** Open a source reference in the configured local IDE (desktop only) */
+  openCodeReference?(request: CodeReferenceRequest): Promise<void>
+
+  /** Resolve and validate a source reference against the project workspaces (desktop only) */
+  resolveCodeReference?(request: CodeReferenceRequest): Promise<string>
+
+  /** Read a source-reference file after validating it against the project workspaces (desktop only) */
+  readLocalFile?(request: CodeReferenceRequest): Promise<string>
+
+  /** Resolve the system-default application for a source-reference file (desktop only) */
+  getDefaultApplication?(request: CodeReferenceRequest): Promise<string | undefined>
 
   /** Reveal a local path in the system file manager; false when the path does not exist (desktop only) */
   revealPath?(path: string): Promise<boolean>

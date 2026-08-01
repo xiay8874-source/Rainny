@@ -138,6 +138,30 @@ export const createOpenReviewFile = (input: {
   }
 }
 
+export const queueRevealFileLine = (input: { root: () => ParentNode | undefined; line: number }) => {
+  let stopped = false
+
+  const reveal = (attempt: number, settle: number) => {
+    if (stopped) return
+    const viewers = Array.from(input.root()?.querySelectorAll<HTMLElement>('[data-component="file"]') ?? [])
+    const viewer = viewers.find((item) => item.getClientRects().length > 0)
+    const host = viewer?.querySelector("diffs-container")
+    const target = host?.shadowRoot?.querySelector(`[data-line="${input.line}"]`)
+    if (target instanceof HTMLElement) {
+      target.scrollIntoView({ block: "center", inline: "nearest" })
+      if (settle < 12) requestAnimationFrame(() => reveal(attempt, settle + 1))
+      return
+    }
+    if (attempt >= 120) return
+    requestAnimationFrame(() => reveal(attempt + 1, settle))
+  }
+
+  requestAnimationFrame(() => reveal(0, 0))
+  return () => {
+    stopped = true
+  }
+}
+
 export const createOpenSessionFileTab = (input: {
   normalizeTab: (tab: string) => string
   openTab: (tab: string) => void

@@ -32,6 +32,10 @@ import { shouldResetCodeTokens, type RenderedCodeState } from "./markdown-code-s
 import { getCachedMarkdown, sanitizeMarkdown, touchCachedMarkdown, type MarkdownCacheEntry } from "./markdown-cache"
 import { inlineCodeKind } from "./markdown-inline-code-kind"
 import { mountMermaidDiagram } from "./mermaid-diagram"
+import { markCodeReferences, setupCodeReferenceLinks } from "./code-reference-links"
+import { CodeReferenceMenuSurface } from "./code-reference-menu"
+import { useCodeReference, type CodeReferenceHandler } from "../context/code-reference"
+import type { CodeReference } from "./code-reference"
 
 type RenderedBlock =
   | (MarkdownCacheEntry & { key: string; mode: Exclude<Block["mode"], "code"> })
@@ -294,7 +298,12 @@ function markInlineCode(root: HTMLDivElement) {
   }
 }
 
-function decorate(root: HTMLDivElement, labels: CopyLabels) {
+function decorate(
+  root: HTMLDivElement,
+  labels: CopyLabels,
+  onOpenCodeReference?: CodeReferenceHandler,
+  resolveCodeReferencePath?: (reference: CodeReference) => string | undefined,
+) {
   const blocks = Array.from(root.querySelectorAll("pre"))
   for (const block of blocks) {
     if (isMermaidLanguage(codeLanguage(block))) {
@@ -304,6 +313,7 @@ function decorate(root: HTMLDivElement, labels: CopyLabels) {
     }
     ensureCodeWrapper(block, labels)
   }
+  if (onOpenCodeReference) markCodeReferences(root, resolveCodeReferencePath)
   if (!document.body.hasAttribute("data-new-layout")) return
   markInlineCode(root)
   markCodeLinks(root)
@@ -393,6 +403,7 @@ export function Markdown(
   const [local, others] = splitProps(props, ["text", "cacheKey", "streaming", "class", "classList"])
   const marked = useMarked()
   const i18n = useI18n()
+  const codeReference = useCodeReference()
   const [root, setRoot] = createSignal<HTMLDivElement>()
   const owner = createUniqueId()
   const activeCodeKeys = new Set<string>()
@@ -496,6 +507,7 @@ export function Markdown(
   )
 
   let copyCleanup: (() => void) | undefined
+  let codeReferenceCleanup: (() => void) | undefined
 
   createEffect(() => {
     const container = root()
@@ -521,7 +533,9 @@ export function Markdown(
     })
     activeCodeKeys.clear()
     nextCodeKeys.forEach((key) => activeCodeKeys.add(key))
-    content.forEach((block, index) => updateBlock(container, index, block, labels))
+    content.forEach((block, index) =>
+      updateBlock(container, index, block, labels, codeReference.open, codeReference.resolvePath),
+    )
     while (container.children.length > content.length) {
       const child = container.lastElementChild
       if (!child) break
@@ -537,10 +551,13 @@ export function Markdown(
         copy: i18n.t("ui.message.copy"),
         copied: i18n.t("ui.message.copied"),
       }))
+    if (!codeReferenceCleanup)
+      codeReferenceCleanup = setupCodeReferenceLinks(container, codeReference.open, codeReference.openExternal)
   })
 
   onCleanup(() => {
     if (copyCleanup) copyCleanup()
+    if (codeReferenceCleanup) codeReferenceCleanup()
     const container = root()
     if (container) disposeMermaidDiagrams(container)
     activeCodeKeys.forEach(disposeCode)
@@ -548,15 +565,17 @@ export function Markdown(
   })
 
   return (
-    <div
-      data-component="markdown"
-      classList={{
-        ...local.classList,
-        [local.class ?? ""]: !!local.class,
-      }}
-      ref={setRoot}
-      {...others}
-    />
+    <CodeReferenceMenuSurface menu={codeReference.menu}>
+      <div
+        data-component="markdown"
+        classList={{
+          ...local.classList,
+          [local.class ?? ""]: !!local.class,
+        }}
+        ref={setRoot}
+        {...others}
+      />
+    </CodeReferenceMenuSurface>
   )
 }
 
@@ -593,7 +612,14 @@ function disposeCode(key: string) {
   disposeStreamingCode(key)
 }
 
-function updateBlock(container: HTMLDivElement, index: number, block: RenderedBlock, labels: CopyLabels) {
+function updateBlock(
+  container: HTMLDivElement,
+  index: number,
+  block: RenderedBlock,
+  labels: CopyLabels,
+  onOpenCodeReference?: CodeReferenceHandler,
+  resolveCodeReferencePath?: (reference: CodeReference) => string | undefined,
+) {
   const current = container.children[index]
   if (block.mode === "code") {
     if (isMermaidLanguage(block.language)) {
@@ -616,7 +642,7 @@ function updateBlock(container: HTMLDivElement, index: number, block: RenderedBl
   next.dataset.markdownHash = block.hash
   next.style.display = "contents"
   next.innerHTML = block.html
-  decorate(next, labels)
+  decorate(next, labels, onOpenCodeReference, resolveCodeReferencePath)
 
   if (!(current instanceof HTMLDivElement)) {
     container.appendChild(next)

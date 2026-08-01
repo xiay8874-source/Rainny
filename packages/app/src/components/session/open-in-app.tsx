@@ -19,6 +19,7 @@ export const OPEN_APPS = [
   "warp",
   "xcode",
   "android-studio",
+  "intellij-idea",
   "powershell",
   "sublime-text",
 ] as const
@@ -52,6 +53,12 @@ export const MAC_OPEN_APPS = [
     label: "session.header.open.app.androidStudio",
     icon: "android-studio",
     openWith: "Android Studio",
+  },
+  {
+    id: "intellij-idea",
+    label: "session.header.open.app.intellijIdea",
+    icon: "intellij-idea",
+    openWith: "IntelliJ IDEA",
   },
   {
     id: "sublime-text",

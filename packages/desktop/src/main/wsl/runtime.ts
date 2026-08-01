@@ -263,7 +263,11 @@ export async function installWslOpencode(version: string, distro: string, opts?:
   return runInteractiveCommand(
     resolveSystem32Command("wsl.exe"),
     wslArgs(
-      ["bash", "-lc", `curl -fsSL https://opencode.ai/install | bash -s -- --version ${shellEscape(version)}`],
+      [
+        "bash",
+        "-lc",
+        `curl -fsSL ${shellEscape(`https://raw.githubusercontent.com/xiay8874-source/Rainny/v${version}/install`)} | bash -s -- --version ${shellEscape(version)}`,
+      ],
       distro,
     ),
     withTimeout(opts, DEFAULT_WSL_INSTALL_TIMEOUT_MS),
@@ -306,7 +310,7 @@ export async function resolveWslOpencode(distro: string, opts?: RunWslOptions) {
   return firstLine(
     (
       await runWslSh(
-        'if [ -x "$HOME/.rainny/bin/rainny" ]; then printf "%s\\n" "$HOME/.rainny/bin/rainny"; fi',
+        'if [ -x "$HOME/.local/bin/rainny" ]; then printf "%s\\n" "$HOME/.local/bin/rainny"; elif [ -x "$HOME/.rainny/bin/rainny" ]; then printf "%s\\n" "$HOME/.rainny/bin/rainny"; else command -v rainny 2>/dev/null || true; fi',
         distro,
         opts,
       )
