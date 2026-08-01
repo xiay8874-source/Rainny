@@ -7326,6 +7326,74 @@ export type GlobalConfigUpdateResponses = {
 
 export type GlobalConfigUpdateResponse = GlobalConfigUpdateResponses[keyof GlobalConfigUpdateResponses]
 
+export type GlobalProjectStateGetData = {
+  body?: never
+  path?: never
+  query?: never
+  url: "/global/project-state"
+}
+
+export type GlobalProjectStateGetErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type GlobalProjectStateGetError = GlobalProjectStateGetErrors[keyof GlobalProjectStateGetErrors]
+
+export type GlobalProjectStateGetResponses = {
+  /**
+   * Shared opened projects
+   */
+  200: {
+    initialized: boolean
+    projects: Array<{
+      worktree: string
+      expanded: boolean
+    }>
+  }
+}
+
+export type GlobalProjectStateGetResponse = GlobalProjectStateGetResponses[keyof GlobalProjectStateGetResponses]
+
+export type GlobalProjectStateUpdateData = {
+  body?: {
+    projects: Array<{
+      worktree: string
+      expanded: boolean
+    }>
+  }
+  path?: never
+  query?: never
+  url: "/global/project-state"
+}
+
+export type GlobalProjectStateUpdateErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type GlobalProjectStateUpdateError = GlobalProjectStateUpdateErrors[keyof GlobalProjectStateUpdateErrors]
+
+export type GlobalProjectStateUpdateResponses = {
+  /**
+   * Updated shared opened projects
+   */
+  200: {
+    initialized: boolean
+    projects: Array<{
+      worktree: string
+      expanded: boolean
+    }>
+  }
+}
+
+export type GlobalProjectStateUpdateResponse =
+  GlobalProjectStateUpdateResponses[keyof GlobalProjectStateUpdateResponses]
+
 export type GlobalDisposeData = {
   body?: never
   path?: never

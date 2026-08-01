@@ -13,6 +13,20 @@ const GlobalHealth = Schema.Struct({
   version: Schema.String,
 })
 
+const GlobalProjectStateItem = Schema.Struct({
+  worktree: Schema.String,
+  expanded: Schema.Boolean,
+})
+
+export const GlobalProjectState = Schema.Struct({
+  initialized: Schema.Boolean,
+  projects: Schema.Array(GlobalProjectStateItem),
+})
+
+export const GlobalProjectStateInput = Schema.Struct({
+  projects: Schema.Array(GlobalProjectStateItem),
+})
+
 const SyncEventSchemas = EventManifest.Latest.values()
   .flatMap((definition) => {
     if (!definition.durable) return []
@@ -66,6 +80,7 @@ export const GlobalPaths = {
   health: "/global/health",
   event: "/global/event",
   config: "/global/config",
+  projectState: "/global/project-state",
   dispose: "/global/dispose",
   upgrade: "/global/upgrade",
 } as const
@@ -109,6 +124,25 @@ export const GlobalApi = HttpApi.make("global").add(
           identifier: "global.config.update",
           summary: "Update global configuration",
           description: "Update global OpenCode configuration settings and preferences.",
+        }),
+      ),
+      HttpApiEndpoint.get("projectStateGet", GlobalPaths.projectState, {
+        success: described(GlobalProjectState, "Shared opened projects"),
+      }).annotateMerge(
+        OpenApi.annotations({
+          identifier: "global.projectState.get",
+          summary: "Get opened projects",
+          description: "Retrieve the projects explicitly opened by Rainny clients connected to this server.",
+        }),
+      ),
+      HttpApiEndpoint.put("projectStateUpdate", GlobalPaths.projectState, {
+        payload: GlobalProjectStateInput,
+        success: described(GlobalProjectState, "Updated shared opened projects"),
+      }).annotateMerge(
+        OpenApi.annotations({
+          identifier: "global.projectState.update",
+          summary: "Update opened projects",
+          description: "Share the projects explicitly opened by a Rainny client with other clients.",
         }),
       ),
       HttpApiEndpoint.post("dispose", GlobalPaths.dispose, {

@@ -86,6 +86,10 @@ import type {
   GlobalEventResponses,
   GlobalHealthErrors,
   GlobalHealthResponses,
+  GlobalProjectStateGetErrors,
+  GlobalProjectStateGetResponses,
+  GlobalProjectStateUpdateErrors,
+  GlobalProjectStateUpdateResponses,
   GlobalUpgradeErrors,
   GlobalUpgradeResponses,
   InstanceDisposeErrors,
@@ -1315,6 +1319,52 @@ export class Config extends HeyApiClient {
   }
 }
 
+export class ProjectState extends HeyApiClient {
+  /**
+   * Get opened projects
+   *
+   * Retrieve the projects explicitly opened by Rainny clients connected to this server.
+   */
+  public get<ThrowOnError extends boolean = false>(options?: Options<never, ThrowOnError>) {
+    return (options?.client ?? this.client).get<
+      GlobalProjectStateGetResponses,
+      GlobalProjectStateGetErrors,
+      ThrowOnError
+    >({ url: "/global/project-state", ...options })
+  }
+
+  /**
+   * Update opened projects
+   *
+   * Share the projects explicitly opened by a Rainny client with other clients.
+   */
+  public update<ThrowOnError extends boolean = false>(
+    parameters?: {
+      projects?: Array<{
+        worktree: string
+        expanded: boolean
+      }>
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams([parameters], [{ args: [{ in: "body", key: "projects" }] }])
+    return (options?.client ?? this.client).put<
+      GlobalProjectStateUpdateResponses,
+      GlobalProjectStateUpdateErrors,
+      ThrowOnError
+    >({
+      url: "/global/project-state",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+}
+
 export class Global extends HeyApiClient {
   /**
    * Get health
@@ -1379,6 +1429,11 @@ export class Global extends HeyApiClient {
   private _config?: Config
   get config(): Config {
     return (this._config ??= new Config({ client: this.client }))
+  }
+
+  private _projectState?: ProjectState
+  get projectState(): ProjectState {
+    return (this._projectState ??= new ProjectState({ client: this.client }))
   }
 }
 

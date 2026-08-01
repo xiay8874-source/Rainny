@@ -1,13 +1,7 @@
 import { createSimpleContext } from "@opencode-ai/ui/context"
-import { batch, createEffect, createMemo, createRoot } from "solid-js"
+import { createEffect, createMemo, createRoot } from "solid-js"
 import { createStore } from "solid-js/store"
-import {
-  createServerProjects,
-  RECENTLY_CLOSED_DISPLAY_LIMIT,
-  serverProjectWorktrees,
-  ServerConnection,
-  useServer,
-} from "./server"
+import { createServerProjects, RECENTLY_CLOSED_DISPLAY_LIMIT, ServerConnection, useServer } from "./server"
 import { pathKey } from "@/utils/path-key"
 import { useServerHealth } from "@/utils/server-health"
 import { createServerSdkContext } from "./server-sdk"
@@ -16,6 +10,7 @@ import { getOwner } from "solid-js/web"
 import { QueryClient } from "@tanstack/solid-query"
 import type { ServerScope } from "@/utils/server-scope"
 import { usePlatform } from "./platform"
+import { createServerProjectState } from "./server-project-state"
 
 export const { use: useGlobal, provider: GlobalProvider } = createSimpleContext({
   name: "Global",
@@ -59,7 +54,8 @@ export const { use: useGlobal, provider: GlobalProvider } = createSimpleContext(
           conn,
           server.scope(key),
           server.projects.forServer(key),
-          platform.platform === "web",
+          platform.platform,
+          server.ready.promise ?? Promise.resolve(),
         )
         return { dispose, serverCtx }
       }, owner as any)
@@ -110,7 +106,8 @@ function createServerCtx(
   conn: ServerConnection.Any,
   scope: ServerScope,
   projects: ReturnType<typeof createServerProjects>,
-  restoreServerProjects: boolean,
+  platform: "desktop" | "web",
+  projectPersistenceReady: Promise<unknown>,
 ) {
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -124,15 +121,14 @@ function createServerCtx(
   const sdk = createServerSdkContext(conn, scope)
   const sync = createServerSyncContext(sdk)
 
-  createEffect(() => {
-    const worktrees = serverProjectWorktrees({
-      enabled: restoreServerProjects,
-      opened: projects.list(),
-      recentlyClosed: projects.recentlyClosed(),
-      discovered: sync.data.project,
-    })
-    if (worktrees.length === 0) return
-    batch(() => worktrees.toReversed().forEach(projects.open))
+  createServerProjectState({
+    platform,
+    projects,
+    ready: projectPersistenceReady,
+    client: {
+      get: () => sdk.client.global.projectState.get(),
+      update: (input) => sdk.client.global.projectState.update(input),
+    },
   })
 
   function enrich(project: { worktree: string; expanded: boolean }) {

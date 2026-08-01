@@ -20,23 +20,6 @@ const HEALTH_POLL_INTERVAL_MS = 10_000
 const RECENTLY_CLOSED_HISTORY_LIMIT = 16
 export const RECENTLY_CLOSED_DISPLAY_LIMIT = 5
 
-export function serverProjectWorktrees(input: {
-  enabled: boolean
-  opened: Array<{ worktree: string }>
-  recentlyClosed: string[]
-  discovered: Array<{ id: string; worktree: string }>
-}) {
-  if (!input.enabled || input.opened.length > 0 || input.recentlyClosed.length > 0) return []
-  const seen = new Set<string>()
-  return input.discovered.flatMap((project) => {
-    const worktree = project.worktree.trim()
-    const key = pathKey(worktree)
-    if (project.id === "global" || worktree === "/" || !worktree || seen.has(key)) return []
-    seen.add(key)
-    return [worktree]
-  })
-}
-
 export function normalizeServerUrl(input: string) {
   const trimmed = input.trim()
   if (!trimmed) return

@@ -5,13 +5,15 @@ import { EventV2 } from "@opencode-ai/core/event"
 import { Installation } from "@/installation"
 import { disposeAllInstancesAndEmitGlobalDisposed } from "@/server/global-lifecycle"
 import { InstallationVersion } from "@opencode-ai/core/installation/version"
-import { Effect, Queue, Schema } from "effect"
+import { Effect, Option, Queue, Schema } from "effect"
 import * as Stream from "effect/Stream"
 import { HttpServerRequest, HttpServerResponse } from "effect/unstable/http"
 import { HttpApiBuilder } from "effect/unstable/httpapi"
 import * as Sse from "effect/unstable/encoding/Sse"
 import { RootHttpApi } from "../api"
-import { GlobalUpgradeInput } from "../groups/global"
+import { GlobalProjectState, GlobalProjectStateInput, GlobalUpgradeInput } from "../groups/global"
+import { Global } from "@opencode-ai/core/global"
+import path from "path"
 
 function eventData(data: unknown): Sse.Event {
   return {
@@ -70,6 +72,7 @@ export const globalHandlers = HttpApiBuilder.group(RootHttpApi, "global", (handl
     const config = yield* Config.Service
     const installation = yield* Installation.Service
     const bridge = yield* EffectBridge.make()
+    const projectStateFile = path.join(Global.Path.data, "project-state.json")
 
     const health = Effect.fn("GlobalHttpApi.health")(function* () {
       return { healthy: true as const, version: InstallationVersion }
@@ -87,6 +90,26 @@ export const globalHandlers = HttpApiBuilder.group(RootHttpApi, "global", (handl
       const result = yield* config.updateGlobal(ctx.payload)
       if (result.changed) bridge.fork(disposeAllInstancesAndEmitGlobalDisposed({ swallowErrors: true }))
       return result.info
+    })
+
+    const projectStateGet = Effect.fn("GlobalHttpApi.projectStateGet")(function* () {
+      return yield* Effect.tryPromise(() => Bun.file(projectStateFile).json()).pipe(
+        Effect.map((value) =>
+          Option.getOrElse(Schema.decodeUnknownOption(GlobalProjectState)(value), () => ({
+            initialized: false as const,
+            projects: [],
+          })),
+        ),
+        Effect.catch(() => Effect.succeed({ initialized: false as const, projects: [] })),
+      )
+    })
+
+    const projectStateUpdate = Effect.fn("GlobalHttpApi.projectStateUpdate")(function* (ctx: {
+      payload: typeof GlobalProjectStateInput.Type
+    }) {
+      const state = { initialized: true as const, projects: ctx.payload.projects }
+      yield* Effect.tryPromise(() => Bun.write(projectStateFile, JSON.stringify(state, null, 2))).pipe(Effect.orDie)
+      return state
     })
 
     const dispose = Effect.fn("GlobalHttpApi.dispose")(function* () {
@@ -150,6 +173,8 @@ export const globalHandlers = HttpApiBuilder.group(RootHttpApi, "global", (handl
       .handleRaw("event", event)
       .handle("configGet", configGet)
       .handle("configUpdate", configUpdate)
+      .handle("projectStateGet", projectStateGet)
+      .handle("projectStateUpdate", projectStateUpdate)
       .handle("dispose", dispose)
       .handleRaw("upgrade", upgradeRaw)
   }),
